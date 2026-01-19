@@ -9,14 +9,13 @@ func main() {
 	results := make(chan string)
 	go checkServer("A", time.Second * 1, results)
 	go checkServer("B", time.Second * 5, results)
+	globalTimeout := time.After(5 * time.Second)
 	for range 2 {
 		select {
 		case v := <- results:
 			fmt.Printf("Printing Result %s\n", v)
-		case <- time.After(3 * time.Second):
+		case <- globalTimeout:
 			fmt.Println("Timeout!!!!")
-		default:
-			fmt.Println("No one is listening, shutting down")
 		}
 	}
 }
