@@ -2,16 +2,22 @@ package main
 
 import (
 	"fmt"
-	"time"
 )
 func main() {
-	fmt.Println("Starting the Main Function!!!")
-	doWork()
-	fmt.Println("Finishing the Main Function")
+	channel := make(chan int)
+	go writeOnly(channel)
+	readOnly(channel)
+
 }
 
-func doWork() {
-	fmt.Println("Time to start doWork Function")
-	time.Sleep(5 * time.Second)
-	fmt.Println("End after 5 seconds")
+func readOnly(read <- chan int){
+	fmt.Println("Started reading from channel")
+	readValue := <- read
+	fmt.Printf("Finished reading from channel %d", readValue)
+}
+
+func writeOnly(write chan <- int){
+	fmt.Println("Started writing to channel")
+	write <- 5
+	fmt.Println("Finished writing to channel")
 }
