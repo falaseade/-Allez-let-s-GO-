@@ -2,21 +2,33 @@ package main
 
 import (
 	"fmt"
+	"math/rand/v2"
 	"time"
 )
 
 func main() {
-	results := make(chan string)
-	go checkServer("A", time.Second * 1, results)
-	go checkServer("B", time.Second * 5, results)
-	globalTimeout := time.After(5 * time.Second)
-	for range 2 {
-		select {
-		case v := <- results:
-			fmt.Printf("Printing Result %s\n", v)
-		case <- globalTimeout:
-			fmt.Println("Timeout!!!!")
-		}
+	dataChannel := make(chan int)
+	done := make(chan struct{})
+	for num := range 3 {
+		go printNumbers(fmt.Sprintf("Consumer %d", num), dataChannel, done)
+	}
+	go produceRandomNumbers(dataChannel)
+	for range 3 {
+		<- done
+	}
+}
+
+func printNumbers(name string, ch <- chan int, done chan <- struct{}){
+	for num := range ch {
+		fmt.Printf("%s is printing a random number %d \n", name, num)
+	}
+	done <- struct{}{}
+}
+
+func produceRandomNumbers(ch chan <- int){
+	defer close(ch)
+	for range 100 {
+		ch <- rand.Int()
 	}
 }
 
@@ -61,3 +73,4 @@ func player(name string, table chan int){
 		
 	}
 }
+
