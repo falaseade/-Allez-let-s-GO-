@@ -7,15 +7,22 @@ import (
 )
 
 func main() {
-	dataChannel := make(chan int)
-	done := make(chan struct{})
-	for num := range 3 {
-		go printNumbers(fmt.Sprintf("Consumer %d", num), dataChannel, done)
+	results := make(chan string)
+	count := 5
+	for num := range count {
+		go sleepForRandomTimeThenMessage(fmt.Sprintf("Task %d", num), results)
 	}
-	go produceRandomNumbers(dataChannel)
-	for range 3 {
-		<- done
+	
+	for range count {
+		value := <- results
+		fmt.Printf(value)
 	}
+}
+
+func sleepForRandomTimeThenMessage(name string, ch chan <- string){
+	randomSeconds := rand.IntN(5)
+	time.Sleep(time.Duration(randomSeconds))
+	ch <- fmt.Sprintf("%s is done\n", name)
 }
 
 func printNumbers(name string, ch <- chan int, done chan <- struct{}){
