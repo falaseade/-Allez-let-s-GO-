@@ -7,15 +7,33 @@ import (
 )
 
 func main() {
-	results := make(chan string)
-	count := 5
-	for num := range count {
-		go sleepForRandomTimeThenMessage(fmt.Sprintf("Task %d", num), results)
+	dataChannel := make(chan int)
+	done := make(chan struct{})
+	go workFunction(6, dataChannel, done)
+	workerFunction(5, dataChannel, done)
+}
+
+func workFunction(jitterTimeout int, ch chan <- int, done <- chan struct{}){
+	for {
+		select {
+		case <- done :
+			fmt.Println("Work Generator: Received stop signal. Exiting.")
+		case ch <- 3:
+			jitter := rand.IntN(jitterTimeout)
+			time.Sleep(time.Duration(jitter) * time.Second)
+		}
 	}
-	
-	for range count {
-		value := <- results
-		fmt.Printf(value)
+}
+
+func workerFunction(waitPeriod int, ch <- chan int, done chan <- struct{}){
+	for {
+		select {
+		case value := <- ch :
+			fmt.Printf("Worker is processing: %d\n", value)
+		case <- time.After(time.Duration(waitPeriod) * time.Second):
+			close(done)
+			return
+		}
 	}
 }
 
