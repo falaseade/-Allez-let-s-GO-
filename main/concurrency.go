@@ -3,14 +3,24 @@ package main
 import (
 	"fmt"
 	"math/rand/v2"
+	"sync"
 	"time"
 )
 
 func main() {
-	dataChannel := make(chan int)
-	done := make(chan struct{})
-	go workFunction(6, dataChannel, done)
-	workerFunction(5, dataChannel, done)
+	var wg sync.WaitGroup
+	for count := range 3 {
+		wg.Add(1)
+		go downloadFiles(&wg, fmt.Sprintf("Downloader %d", count), 3)
+	}
+	wg.Wait()
+}
+
+func downloadFiles(wg *sync.WaitGroup, name string, maxDownloadTime int){
+	defer wg.Done()
+	jitter := rand.IntN(maxDownloadTime)
+	time.Sleep(time.Duration(jitter) * time.Second)
+	fmt.Printf("%s has finished downloading!!!\n", name)
 }
 
 func workFunction(jitterTimeout int, ch chan <- int, done <- chan struct{}){
