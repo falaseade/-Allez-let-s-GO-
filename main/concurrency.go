@@ -8,12 +8,28 @@ import (
 )
 
 func main() {
+	results := make(chan string)
 	var wg sync.WaitGroup
-	for count := range 3 {
+	databaseNames := []string{"Web", "Image", "Video"}
+	for _, db := range databaseNames {
 		wg.Add(1)
-		go downloadFiles(&wg, fmt.Sprintf("Downloader %d", count), 3)
+		go searchDatabase(db, results, &wg)
 	}
-	wg.Wait()
+	go func(){
+		wg.Wait()
+		close(results)
+	}()
+
+	for value := range results {
+		fmt.Println(value)
+	}
+}
+
+func searchDatabase(nameOfDatabase string, results chan <- string, wg *sync.WaitGroup){
+	defer wg.Done()
+	jitterTime := rand.IntN(3)
+	time.Sleep(time.Duration(jitterTime) * time.Second)
+	results <- fmt.Sprintf("Received response from: %s", nameOfDatabase)
 }
 
 func downloadFiles(wg *sync.WaitGroup, name string, maxDownloadTime int){
