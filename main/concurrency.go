@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"math/rand/v2"
 	"sync"
@@ -8,12 +9,14 @@ import (
 )
 
 func main() {
-	results := make(chan string)
+	results := make(chan int)
 	var wg sync.WaitGroup
-	databaseNames := []string{"Web", "Image", "Video"}
-	for _, db := range databaseNames {
+	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+	defer cancel()
+	exchangeNames := []string{"Exchange 1", "Exchange 2", "Exchange 3"}
+	for _, exchange := range exchangeNames {
 		wg.Add(1)
-		go searchDatabase(db, results, &wg)
+		go getDataFromExchange(ctx, exchange, results, &wg)
 	}
 	go func(){
 		wg.Wait()
@@ -25,9 +28,20 @@ func main() {
 	}
 }
 
+func getDataFromExchange(ctx context.Context, nameOfExchange string, results chan <- int, wg *sync.WaitGroup){
+	defer wg.Done()
+	jitterTimeout := rand.IntN(3) + 1
+	select {
+	case <- ctx.Done():
+		fmt.Printf("Context Cancelled: %s for %s exchange\n", ctx.Err(), nameOfExchange)
+	case <- time.After(time.Duration(jitterTimeout) * time.Second):
+		results <- jitterTimeout
+	}
+}
+
 func searchDatabase(nameOfDatabase string, results chan <- string, wg *sync.WaitGroup){
 	defer wg.Done()
-	jitterTime := rand.IntN(3)
+	jitterTime := rand.IntN(3) + 1
 	time.Sleep(time.Duration(jitterTime) * time.Second)
 	results <- fmt.Sprintf("Received response from: %s", nameOfDatabase)
 }
