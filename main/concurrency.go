@@ -9,22 +9,36 @@ import (
 )
 
 func main() {
-	results := make(chan int)
-	var wg sync.WaitGroup
-	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+	root, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
 	defer cancel()
-	exchangeNames := []string{"Exchange 1", "Exchange 2", "Exchange 3"}
-	for _, exchange := range exchangeNames {
-		wg.Add(1)
-		go getDataFromExchange(ctx, exchange, results, &wg)
-	}
+	var wg sync.WaitGroup
+	results := make(chan string)
+	contextWithMetadata := context.WithValue(root, "sessionID", "BUS-123")
+	wg.Add(2)
+	go bossWorkerFunction(contextWithMetadata, "Fast Worker", 2, &wg, results)
+	go bossWorkerFunction(contextWithMetadata, "Slow Worker", 5, &wg, results)
 	go func(){
 		wg.Wait()
 		close(results)
 	}()
 
-	for value := range results {
-		fmt.Println(value)
+	for result := range results {
+		fmt.Printf("Printed result: %s\n", result)
+	}
+
+}
+
+func bossWorkerFunction(ctx context.Context, name string, timeout int, wg *sync.WaitGroup, results chan <- string){
+	defer wg.Done()
+	id, ok := ctx.Value("sessionID").(string)
+	if !ok {
+		id = "UNKNOWN"
+	}
+	select {
+	case <- ctx.Done():
+		fmt.Printf("Context cancelled: %s\n", ctx.Err())
+	case <- time.After(time.Duration(timeout) * time.Second):
+		results <- fmt.Sprintf("Worker %s completed session %s", name, id)
 	}
 }
 
